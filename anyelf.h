@@ -1,4 +1,4 @@
-/* Contents of file listplug.h */
+/* Contents of file anyelf.h */
 
 #define lc_copy		1
 #define lc_newparams	2
@@ -23,8 +23,8 @@
 #define itm_fit		0xFFFB
 #define itm_next	0xFFFA
 
-#define LISTPLUGIN_OK	0
-#define LISTPLUGIN_ERROR	1
+#define ANYELF_OK    0
+#define ANYELF_ERROR 1
 
 typedef struct {
 	int size;
