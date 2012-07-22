@@ -1,8 +1,6 @@
 EXPORTS
   ListLoad
-  ListLoadW
   ListLoadNext
-  ListLoadNextW
   ListPrint
   ListSendCommand
   ListCloseWindow
@@ -12,4 +10,3 @@ EXPORTS
   ListNotificationReceived
   ListSetDefaultParams
   ListGetPreviewBitmap
-  ListGetPreviewBitmapW

@@ -5,13 +5,14 @@
 #include "stdafx.h"
 #include "anyelf.h"
 #include "cunicode.h"
+#include <elfio.hpp>
 
 #define supportedextension1 L".c"
 #define supportedextension2 L".cpp"
 #define supportedextension3 L".h"
 #define supportedextension4 L".pas"
 /* Note: in C, double quotes inside a string need to be escaped with a backslash!  */
-#define parsefunction "force | ([0]=127 & [1]=\"E\" & [2]=\"L\" & [3]=\"F\")"
+#define parsefunction "[0]=127 & [1]=\"E\" & [2]=\"L\" & [3]=\"F\""
 
 HINSTANCE hinst;
 HMODULE FLibHandle=0;
@@ -140,8 +141,11 @@ int __stdcall ListNotificationReceived(HWND ListWin,int Message,WPARAM wParam,LP
 	return 0;
 }
 
-HWND __stdcall ListLoadW(HWND ParentWin,WCHAR* FileToLoad,int ShowFlags)
+
+HWND __stdcall ListLoad(HWND ParentWin,char* FileToLoad,int ShowFlags)
 {
+//	WCHAR FileToLoadW[wdirtypemax];
+//	return ListLoadW(ParentWin,awfilenamecopy(FileToLoadW,FileToLoad),ShowFlags);
 	HWND hwnd;
 	RECT r;
 	DWORD w2;
@@ -149,20 +153,12 @@ HWND __stdcall ListLoadW(HWND ParentWin,WCHAR* FileToLoad,int ShowFlags)
 	WCHAR *p;
 	BOOL success=false;
 
-	if (ShowFlags & lcp_forceshow==0) {  // don't check extension in this case!
-		p=wcsrchr(FileToLoad,'\\');
-		if (!p)
-			return NULL;
-		p=wcsrchr(p,'.');
-		if (!p || (_wcsicmp(p,supportedextension1)!=0 && _wcsicmp(p,supportedextension2)!=0
-			   && _wcsicmp(p,supportedextension3)!=0 && _wcsicmp(p,supportedextension4)!=0))
-			return NULL;
-	}
 	// Extension is supported -> load file
-	HANDLE f=CreateFileT(FileToLoad,GENERIC_READ,FILE_SHARE_READ,NULL,OPEN_EXISTING,
-							FILE_FLAG_SEQUENTIAL_SCAN,NULL);
-	if (f==INVALID_HANDLE_VALUE)
-		return NULL;
+    ELFIO::elfio reader;
+
+    if ( !reader.load( FileToLoad ) ) {
+        return NULL;
+    }
 
 	if (!FLibHandle) {
 		int OldError = SetErrorMode(SEM_NOOPENFILEERRORBOX);
@@ -193,9 +189,6 @@ HWND __stdcall ListLoadW(HWND ParentWin,WCHAR* FileToLoad,int ShowFlags)
 
 		PostMessage(ParentWin,WM_COMMAND,MAKELONG(lcp_ansi,itm_fontstyle),(LPARAM)hwnd);
 
-		int l=GetFileSize(f,NULL);
-		pdata=(char*)malloc(l+1);
-		if (pdata) {
 			/*ReadFile(f,pdata,l,&w2,NULL);
 			if (w2<0) w2=0;
 			if (w2>(DWORD)l) w2=l;
@@ -213,24 +206,17 @@ HWND __stdcall ListLoadW(HWND ParentWin,WCHAR* FileToLoad,int ShowFlags)
             /*
 			}
             */
-			free(pdata);
-		}
+
 		if (!success) {
 			DestroyWindow(hwnd);
 			hwnd=NULL;
 		}
 	}
-	CloseHandle(f);
-	lastloadtime=GetCurrentTime();
+
+    lastloadtime=GetCurrentTime();
 	if (hwnd)
 		ShowWindow(hwnd,SW_SHOW);
 	return hwnd;
-}
-
-HWND __stdcall ListLoad(HWND ParentWin,char* FileToLoad,int ShowFlags)
-{
-	WCHAR FileToLoadW[wdirtypemax];
-	return ListLoadW(ParentWin,awfilenamecopy(FileToLoadW,FileToLoad),ShowFlags);
 }
 
 int __stdcall ListLoadNextW(HWND ParentWin,HWND ListWin,WCHAR* FileToLoad,int ShowFlags)

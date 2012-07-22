@@ -143,6 +143,7 @@
 			<Tool
 				Name="VCCLCompilerTool"
 				Optimization="0"
+				AdditionalIncludeDirectories="D:\Projects\elfio\elfio"
 				PreprocessorDefinitions="WIN32;_DEBUG;_WINDOWS;_USRDLL;ANYELF_EXPORTS"
 				MinimalRebuild="true"
 				BasicRuntimeChecks="3"
