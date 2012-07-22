@@ -49,6 +49,7 @@
 				Name="VCCLCompilerTool"
 				Optimization="2"
 				InlineFunctionExpansion="1"
+				AdditionalIncludeDirectories="D:\Projects\elfio\elfio"
 				PreprocessorDefinitions="WIN32;NDEBUG;_WINDOWS;_USRDLL;ANYELF_EXPORTS"
 				StringPooling="true"
 				RuntimeLibrary="0"
