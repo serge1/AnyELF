@@ -1,4 +1,7 @@
 /* Contents of file anyelf.h */
+#include <string>
+#include <sstream>
+#include <elfio.hpp>
 
 #define lc_copy		1
 #define lc_newparams	2
@@ -45,4 +48,4 @@ void __stdcall ListSetDefaultParams(ListDefaultParamStruct* dps);
 HBITMAP __stdcall ListGetPreviewBitmap(char* FileToLoad,int width,int height,
     char* contentbuf,int contentbuflen);
 
-
+int elfdump( const ELFIO::elfio& reader, std::ostringstream& out );

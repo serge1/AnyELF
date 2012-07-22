@@ -239,6 +239,10 @@
 				>
 			</File>
 			<File
+				RelativePath=".\anyelfdump.cpp"
+				>
+			</File>
+			<File
 				RelativePath="cunicode.cpp"
 				>
 				<FileConfiguration

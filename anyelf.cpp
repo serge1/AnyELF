@@ -189,23 +189,13 @@ HWND __stdcall ListLoad(HWND ParentWin,char* FileToLoad,int ShowFlags)
 
 		PostMessage(ParentWin,WM_COMMAND,MAKELONG(lcp_ansi,itm_fontstyle),(LPARAM)hwnd);
 
-			/*ReadFile(f,pdata,l,&w2,NULL);
-			if (w2<0) w2=0;
-			if (w2>(DWORD)l) w2=l;
-			pdata[w2]=0;
-			if (strlen(pdata)==w2) {     // Make sure the file doesn't contain any 0x00 char!
-				char *p2=InsertLineNumbers(pdata,w2);
-            */
-            char* p2 = "Hello World!\nHello Serge!\n";
-				if (p2) {
-					SetWindowText(hwnd,p2);
-					//free(p2);
-					PostMessage(ParentWin,WM_COMMAND,MAKELONG(0,itm_percent),(LPARAM)hwnd);
-					success=true;
-				}
-            /*
-			}
-            */
+        std::ostringstream oss;
+        elfdump( reader, oss );
+
+        SetWindowText( hwnd, oss.str().c_str() );
+
+        PostMessage(ParentWin,WM_COMMAND,MAKELONG(0,itm_percent),(LPARAM)hwnd);
+		success=true;
 
 		if (!success) {
 			DestroyWindow(hwnd);
