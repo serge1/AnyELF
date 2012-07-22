@@ -1,8 +1,9 @@
-// listplug.cpp : Defines the entry point for the DLL application.
+// anyelf.cpp : Defines the entry point for the DLL application.
 //
 
+#define _CRT_SECURE_NO_WARNINGS 1
 #include "stdafx.h"
-#include "listplug.h"
+#include "anyelf.h"
 #include "cunicode.h"
 
 #define supportedextension1 L".c"
@@ -14,7 +15,7 @@
 
 HINSTANCE hinst;
 HMODULE FLibHandle=0;
-char inifilename[MAX_PATH]="lsplugin.ini";  // Unused in this plugin, may be used to save data
+char inifilename[MAX_PATH]="anyelf.ini";  // Unused in this plugin, may be used to save data
 
 BOOL APIENTRY DllMain( HANDLE hModule, 
                        DWORD  ul_reason_for_call, 
@@ -53,7 +54,7 @@ char* AppendCurrentLine(char* inbuf,int currentline,int numdigits)
 {
 	char out1[16];
 
-	itoa(currentline,out1,10);
+	_itoa(currentline,out1,10);
 	int fill=numdigits-strlen(out1);
 	for (int i=0;i<fill;i++)
 		inbuf[i]='0';
@@ -77,7 +78,7 @@ char* InsertLineNumbers(char* inbuf,int buflen)
 		p++;
 	}
 	// Get number of digits needed
-	int numdigits=(int)floor(1+log10(numbreaks));
+	int numdigits=(int)floor(1+log10((double)numbreaks));
 	
 	int spaceneeded=buflen+numbreaks*(numdigits+2)+1;
 
@@ -119,7 +120,7 @@ int __stdcall ListNotificationReceived(HWND ListWin,int Message,WPARAM wParam,LP
 {
 	switch (Message) {
 	case WM_COMMAND:
-		if (HIWORD(wParam)==EN_UPDATE && abs(GetCurrentTime()-lastloadtime)>1000) {
+		if (HIWORD(wParam)==EN_UPDATE && abs((long)GetCurrentTime()-lastloadtime)>1000) {
 			int firstvisible=SendMessage(ListWin,EM_GETFIRSTVISIBLELINE,0,0);
 			int linecount=SendMessage(ListWin,EM_GETLINECOUNT,0,0);
 			if (linecount>0) {
@@ -153,8 +154,8 @@ HWND __stdcall ListLoadW(HWND ParentWin,WCHAR* FileToLoad,int ShowFlags)
 		if (!p)
 			return NULL;
 		p=wcsrchr(p,'.');
-		if (!p || (wcsicmp(p,supportedextension1)!=0 && wcsicmp(p,supportedextension2)!=0
-			   && wcsicmp(p,supportedextension3)!=0 && wcsicmp(p,supportedextension4)!=0))
+		if (!p || (_wcsicmp(p,supportedextension1)!=0 && _wcsicmp(p,supportedextension2)!=0
+			   && _wcsicmp(p,supportedextension3)!=0 && _wcsicmp(p,supportedextension4)!=0))
 			return NULL;
 	}
 	// Extension is supported -> load file
@@ -239,17 +240,17 @@ int __stdcall ListLoadNextW(HWND ParentWin,HWND ListWin,WCHAR* FileToLoad,int Sh
 	if (ShowFlags & lcp_forceshow==0) {  // don't check extension in this case!
 		p=wcsrchr(FileToLoad,'\\');
 		if (!p)
-			return LISTPLUGIN_ERROR;
+			return ANYELF_ERROR;
 		p=wcsrchr(p,'.');
-		if (!p || (wcsicmp(p,supportedextension1)!=0 && wcsicmp(p,supportedextension2)!=0
-			   && wcsicmp(p,supportedextension3)!=0 && wcsicmp(p,supportedextension4)!=0))
-			return LISTPLUGIN_ERROR;
+		if (!p || (_wcsicmp(p,supportedextension1)!=0 && _wcsicmp(p,supportedextension2)!=0
+			   && _wcsicmp(p,supportedextension3)!=0 && _wcsicmp(p,supportedextension4)!=0))
+			return ANYELF_ERROR;
 	}
 	// Extension is supported -> load file
 	HANDLE f=CreateFileT(FileToLoad,GENERIC_READ,FILE_SHARE_READ,NULL,OPEN_EXISTING,
 							FILE_FLAG_SEQUENTIAL_SCAN,NULL);
 	if (f==INVALID_HANDLE_VALUE)
-		return LISTPLUGIN_ERROR;
+		return ANYELF_ERROR;
 
 	lastloadtime=GetCurrentTime();
 
@@ -281,12 +282,12 @@ int __stdcall ListLoadNextW(HWND ParentWin,HWND ListWin,WCHAR* FileToLoad,int Sh
 			free(pdata);
 		}
 		if (!success) {
-			return LISTPLUGIN_ERROR;
+			return ANYELF_ERROR;
 		}
 	}
 	CloseHandle(f);
 	lastloadtime=GetCurrentTime();
-	return LISTPLUGIN_OK;
+	return ANYELF_OK;
 }
 
 int __stdcall ListLoadNext(HWND ParentWin,HWND ListWin,char* FileToLoad,int ShowFlags)
@@ -300,13 +301,13 @@ int __stdcall ListSendCommand(HWND ListWin,int Command,int Parameter)
 	switch (Command) {
 	case lc_copy:
 		SendMessage(ListWin,WM_COPY,0,0);
-		return LISTPLUGIN_OK;
+		return ANYELF_OK;
 	case lc_newparams:
 		PostMessage(GetParent(ListWin),WM_COMMAND,MAKELONG(0,itm_next),(LPARAM)ListWin);
-		return LISTPLUGIN_ERROR;
+		return ANYELF_ERROR;
 	case lc_selectall:
 		SendMessage(ListWin,EM_SETSEL,0,-1);
-		return LISTPLUGIN_OK;
+		return ANYELF_OK;
 	case lc_setpercent:
 		int firstvisible=SendMessage(ListWin,EM_GETFIRSTVISIBLELINE,0,0);
 		int linecount=SendMessage(ListWin,EM_GETLINECOUNT,0,0);
@@ -320,11 +321,11 @@ int __stdcall ListSendCommand(HWND ListWin,int Command,int Parameter)
 			pos=MulDiv(firstvisible,100,linecount);
 			// Update percentage display
 			PostMessage(GetParent(ListWin),WM_COMMAND,MAKELONG(pos,itm_percent),(LPARAM)ListWin);
-			return LISTPLUGIN_OK;
+			return ANYELF_OK;
 		}
 		break;
 	}
-	return LISTPLUGIN_ERROR;
+	return ANYELF_ERROR;
 }
 
 int _stdcall ListSearchText(HWND ListWin,char* SearchString,int SearchParameter)
@@ -361,11 +362,11 @@ int _stdcall ListSearchText(HWND ListWin,char* SearchString,int SearchParameter)
 		  line=0;
       line-=SendMessage(ListWin,EM_GETFIRSTVISIBLELINE,0,0);
       SendMessage(ListWin,EM_LINESCROLL,0,line);
-	  return LISTPLUGIN_OK;
+	  return ANYELF_OK;
 	} else {
 		SendMessage(ListWin,EM_SETSEL,-1,-1);  // Restart search at the beginning
 	}
-	return LISTPLUGIN_ERROR;
+	return ANYELF_ERROR;
 }
 
 void __stdcall ListCloseWindow(HWND ListWin)
@@ -561,8 +562,8 @@ HBITMAP __stdcall ListGetPreviewBitmapW(WCHAR* FileToLoad,int width,int height,
 	if (!p)
 		return NULL;
 	p=wcsrchr(p,'.');
-	if (!p || (wcsicmp(p,supportedextension1)!=0 && wcsicmp(p,supportedextension2)!=0
-		   && wcsicmp(p,supportedextension3)!=0 && wcsicmp(p,supportedextension4)!=0))
+	if (!p || (_wcsicmp(p,supportedextension1)!=0 && _wcsicmp(p,supportedextension2)!=0
+		   && _wcsicmp(p,supportedextension3)!=0 && _wcsicmp(p,supportedextension4)!=0))
 		return NULL;
 	
 	if (!contentbuf || contentbuflen<=0)
@@ -637,5 +638,5 @@ int _stdcall ListSearchDialog(HWND ListWin,int FindNext)
 		MessageBox(ListWin,"Find Next","test",0);
 	else
 		MessageBox(ListWin,"Find First","test",0);*/
-	return LISTPLUGIN_ERROR;  // use ListSearchText instead!
+	return ANYELF_ERROR;  // use ListSearchText instead!
 }
