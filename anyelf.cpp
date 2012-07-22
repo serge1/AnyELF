@@ -11,7 +11,7 @@
 #define supportedextension3 L".h"
 #define supportedextension4 L".pas"
 /* Note: in C, double quotes inside a string need to be escaped with a backslash!  */
-#define parsefunction "force | (ext=\"C\" | ext=\"CPP\") & FIND(\"{\") | (ext=\"H\") | (ext=\"PAS\" & FINDI(\"BEGIN\"))"
+#define parsefunction "force | ([0]=127 & [1]=\"E\" & [2]=\"L\" & [3]=\"F\")"
 
 HINSTANCE hinst;
 HMODULE FLibHandle=0;
@@ -196,19 +196,23 @@ HWND __stdcall ListLoadW(HWND ParentWin,WCHAR* FileToLoad,int ShowFlags)
 		int l=GetFileSize(f,NULL);
 		pdata=(char*)malloc(l+1);
 		if (pdata) {
-			ReadFile(f,pdata,l,&w2,NULL);
+			/*ReadFile(f,pdata,l,&w2,NULL);
 			if (w2<0) w2=0;
 			if (w2>(DWORD)l) w2=l;
 			pdata[w2]=0;
 			if (strlen(pdata)==w2) {     // Make sure the file doesn't contain any 0x00 char!
 				char *p2=InsertLineNumbers(pdata,w2);
+            */
+            char* p2 = "Hello World!\nHello Serge!\n";
 				if (p2) {
 					SetWindowText(hwnd,p2);
-					free(p2);
+					//free(p2);
 					PostMessage(ParentWin,WM_COMMAND,MAKELONG(0,itm_percent),(LPARAM)hwnd);
 					success=true;
 				}
+            /*
 			}
+            */
 			free(pdata);
 		}
 		if (!success) {
