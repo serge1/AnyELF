@@ -184,25 +184,31 @@ HWND __stdcall ListLoad(HWND ParentWin,char* FileToLoad,int ShowFlags)
 		SendMessage(hwnd, EM_SETMARGINS, EC_LEFTMARGIN, 8);
 		SendMessage(hwnd, EM_SETEVENTMASK, 0, ENM_UPDATE); //ENM_SCROLL doesn't work for thumb movements!
 
-		PostMessage(ParentWin,WM_COMMAND,MAKELONG(lcp_ansi,itm_fontstyle),(LPARAM)hwnd);
+		PostMessage( ParentWin, WM_COMMAND, MAKELONG( lcp_ascii, itm_fontstyle ), (LPARAM)hwnd );
 
         std::ostringstream oss;
         elfdump( reader, oss );
 
+        CHARFORMAT cf;
+        cf.cbSize = sizeof( cf );
+        cf.dwMask = CFM_FACE;
+        strcpy( cf.szFaceName, "Courier New" );
+        SendMessage( hwnd, EM_SETCHARFORMAT, SCF_ALL, (LPARAM)&cf );
+
         SetWindowText( hwnd, oss.str().c_str() );
 
-        PostMessage(ParentWin,WM_COMMAND,MAKELONG(0,itm_percent),(LPARAM)hwnd);
-		success=true;
+        PostMessage( ParentWin, WM_COMMAND, MAKELONG( 0, itm_percent ), (LPARAM)hwnd );
+		success = true;
 
-		if (!success) {
-			DestroyWindow(hwnd);
-			hwnd=NULL;
+		if ( !success ) {
+			DestroyWindow( hwnd );
+			hwnd = NULL;
 		}
 	}
 
-    lastloadtime=GetCurrentTime();
-	if (hwnd)
-		ShowWindow(hwnd,SW_SHOW);
+    lastloadtime = GetCurrentTime();
+	if ( hwnd )
+		ShowWindow( hwnd, SW_SHOW );
 	return hwnd;
 }
 

@@ -1,6 +1,7 @@
 Debug
 Release
 x64
+ipch
 
 anyelf.ncb
 anyelf.*.user
