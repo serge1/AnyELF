@@ -1,7 +1,7 @@
 // anyelf.cpp : Defines the entry point for the DLL application.
 //
 
-#define _CRT_SECURE_NO_WARNINGS 1
+#define _CRT_SECURE_NO_WARNINGS
 #include "stdafx.h"
 #include "anyelf.h"
 #include "cunicode.h"
@@ -148,9 +148,6 @@ HWND __stdcall ListLoad(HWND ParentWin,char* FileToLoad,int ShowFlags)
 //	return ListLoadW(ParentWin,awfilenamecopy(FileToLoadW,FileToLoad),ShowFlags);
 	HWND hwnd;
 	RECT r;
-	DWORD w2;
-	char *pdata;
-	WCHAR *p;
 	BOOL success=false;
 
 	// Extension is supported -> load file
@@ -214,10 +211,11 @@ int __stdcall ListLoadNextW(HWND ParentWin,HWND ListWin,WCHAR* FileToLoad,int Sh
 	RECT r;
 	DWORD w2;
 	char *pdata;
-	WCHAR *p;
 	BOOL success=false;
 
-	if (ShowFlags & lcp_forceshow==0) {  // don't check extension in this case!
+/*
+    if (ShowFlags & lcp_forceshow==0) {  // don't check extension in this case!
+        WCHAR *p;
 		p=wcsrchr(FileToLoad,'\\');
 		if (!p)
 			return ANYELF_ERROR;
@@ -226,6 +224,7 @@ int __stdcall ListLoadNextW(HWND ParentWin,HWND ListWin,WCHAR* FileToLoad,int Sh
 			   && _wcsicmp(p,supportedextension3)!=0 && _wcsicmp(p,supportedextension4)!=0))
 			return ANYELF_ERROR;
 	}
+*/
 	// Extension is supported -> load file
 	HANDLE f=CreateFileT(FileToLoad,GENERIC_READ,FILE_SHARE_READ,NULL,OPEN_EXISTING,
 							FILE_FLAG_SEQUENTIAL_SCAN,NULL);

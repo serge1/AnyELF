@@ -22,6 +22,8 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 */
 
+#include "stdafx.h"
+
 #ifdef _MSC_VER
   #define _SCL_SECURE_NO_WARNINGS
   #define ELFIO_NO_INTTYPES
@@ -31,7 +33,6 @@ THE SOFTWARE.
 
 #define __STDC_FORMAT_MACROS
 
-#include "stdafx.h"
 #include <string>
 #include <sstream>
 #include <elfio.hpp>
