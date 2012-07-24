@@ -56,7 +56,7 @@ char* AppendCurrentLine(char* inbuf,int currentline,int numdigits)
 	char out1[16];
 
 	_itoa(currentline,out1,10);
-	int fill=numdigits-strlen(out1);
+	int fill=numdigits-(int)strlen(out1);
 	for (int i=0;i<fill;i++)
 		inbuf[i]='0';
 	strcpy(inbuf+fill,out1);
@@ -586,7 +586,7 @@ HBITMAP __stdcall ListGetPreviewBitmapW(WCHAR* FileToLoad,int width,int height,
       DEFAULT_QUALITY,VARIABLE_PITCH | FF_DONTCARE,"Arial");
     oldfont=(HFONT)SelectObject(dc_big,font);
     FillRect(dc_big,&r,(HBRUSH)GetStockObject(WHITE_BRUSH));
-    DrawText(dc_big,newbuf,strlen(newbuf),&r,DT_EXPANDTABS);
+    DrawText(dc_big,newbuf,(int)strlen(newbuf),&r,DT_EXPANDTABS);
     SelectObject(dc_big,oldfont);
     DeleteObject(font);
 
