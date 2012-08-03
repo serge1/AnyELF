@@ -2,7 +2,16 @@
 //
 
 #define _CRT_SECURE_NO_WARNINGS
-#include "stdafx.h"
+#define WIN32_LEAN_AND_MEAN		// Exclude rarely-used stuff from Windows headers
+
+#include <windows.h>
+#include <stdlib.h>
+#include <shellapi.h>
+#include <malloc.h>
+#include <richedit.h>
+#include <commdlg.h>
+#include <math.h> 
+
 #include "anyelf.h"
 #include "cunicode.h"
 #include <elfio.hpp>

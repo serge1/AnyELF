@@ -1,4 +1,9 @@
 
+#define WIN32_LEAN_AND_MEAN		// Exclude rarely-used stuff from Windows headers
+
+#include <windows.h>
+#include <shellapi.h>
+
 BOOL usys();
 
 #define wdirtypemax 1024

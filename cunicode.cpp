@@ -1,4 +1,3 @@
-#include "stdafx.h"
 #include "cunicode.h"
 
 char usysychecked=0;
