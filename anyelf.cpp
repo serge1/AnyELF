@@ -51,77 +51,29 @@ char* strlcpy(char* p,char*p2,int maxlen)
 	return p;
 }
 
-char* AppendCurrentLine(char* inbuf,int currentline,int numdigits)
-{
-	char out1[16];
-
-	_itoa(currentline,out1,10);
-	int fill=numdigits-(int)strlen(out1);
-	for (int i=0;i<fill;i++)
-		inbuf[i]='0';
-	strcpy(inbuf+fill,out1);
-	strcat(inbuf,": ");
-	return inbuf+strlen(inbuf);
+void searchAndReplace(std::string& value, std::string const& search,std::string const& replace) 
+{ 
+    std::string::size_type  next; 
+ 
+    for(next = value.find(search);        // Try and find the first match 
+        next != std::string::npos;        // next is npos if nothing was found 
+        next = value.find(search,next)    // search for the next match starting after 
+                                          // the last match that was found. 
+       ) 
+    { 
+        // Inside the loop. So we found a match. 
+        value.replace(next,search.length(),replace);   // Do the replacement. 
+        next += replace.length();                      // Move to just after the replace 
+                                                       // This is the point were we start 
+                                                       // the next search from.  
+    } 
 }
-
-char* InsertLineNumbers(char* inbuf,int buflen)
-{
-	int numbreaks=1;   //At least one line
-	char lastchar=0;
-	char* p;
-	
-	// First, count the number of line breaks
-	p=inbuf;
-	while (p[0]) {
-		if (p[0]==13 || (p[0]==10 && lastchar!=13))
-			numbreaks++;
-		lastchar=p[0];
-		p++;
-	}
-	// Get number of digits needed
-	int numdigits=(int)floor(1+log10((double)numbreaks));
-	
-	int spaceneeded=buflen+numbreaks*(numdigits+2)+1;
-
-	char* pout=(char*)malloc(spaceneeded);
-	if (!pout)
-		return NULL;
-
-	int currentline=1;
-	p=inbuf;
-	char* p2=AppendCurrentLine(pout,currentline,numdigits);
-	while (p[0]) {
-		if (p[0]==13 || (p[0]==10 && lastchar!=13)) {
-			currentline++;
-			p2[0]=13;
-			p2++;
-			p++;
-			lastchar=13;
-			if (p[0]==10) {
-				p2[0]=10;
-				p2++;
-				p++;
-				lastchar=10;
-			}
-			p2=AppendCurrentLine(p2,currentline,numdigits);
-		} else {
-			lastchar=p[0];
-			p2[0]=p[0];
-			p++;
-			p2++;
-		}
-	}
-	p2[0]=0;
-	return pout;
-}
-
-int lastloadtime=0;   // Workaround to RichEdit bug
 
 int __stdcall ListNotificationReceived(HWND ListWin,int Message,WPARAM wParam,LPARAM lParam)
 {
 	switch (Message) {
 	case WM_COMMAND:
-		if (HIWORD(wParam)==EN_UPDATE && abs((long)GetCurrentTime()-lastloadtime)>1000) {
+		if (HIWORD(wParam)==EN_UPDATE) {
 			int firstvisible=SendMessage(ListWin,EM_GETFIRSTVISIBLELINE,0,0);
 			int linecount=SendMessage(ListWin,EM_GETLINECOUNT,0,0);
 			if (linecount>0) {
@@ -148,7 +100,6 @@ HWND __stdcall ListLoad(HWND ParentWin,char* FileToLoad,int ShowFlags)
 //	return ListLoadW(ParentWin,awfilenamecopy(FileToLoadW,FileToLoad),ShowFlags);
 	HWND hwnd;
 	RECT r;
-	BOOL success=false;
 
 	// Extension is supported -> load file
     ELFIO::elfio reader;
@@ -167,48 +118,38 @@ HWND __stdcall ListLoad(HWND ParentWin,char* FileToLoad,int ShowFlags)
 		SetErrorMode(OldError);
 	}
 
-	lastloadtime=GetCurrentTime();
-
-	GetClientRect(ParentWin,&r);
+    std::ostringstream oss;
+    int error = elfdump( reader, oss );
+    if ( error != 0 ) {
+        return NULL;
+    }
+    std::string text = oss.str();
+    searchAndReplace( text, "\n", "\r\n" );
+    
+    GetClientRect(ParentWin,&r);
 	// Create window invisbile, only show when data fully loaded!
-	hwnd=CreateWindow("RichEdit20A","",WS_CHILD | ES_MULTILINE | ES_READONLY |
-		                        WS_HSCROLL | WS_VSCROLL | ES_NOHIDESEL,
+	hwnd=CreateWindow("EDIT","",WS_CHILD | ES_MULTILINE | ES_WANTRETURN | ES_READONLY |
+		                        WS_HSCROLL | ES_AUTOVSCROLL | ES_NOHIDESEL,
 		r.left,r.top,r.right-r.left,
 		r.bottom-r.top,ParentWin,NULL,hinst,NULL);
-	if (!hwnd)
-		hwnd=CreateWindow("RichEdit","",WS_CHILD | ES_MULTILINE | ES_READONLY |
-		                        WS_HSCROLL | WS_VSCROLL | ES_NOHIDESEL,
-		r.left,r.top,r.right-r.left,
-		r.bottom-r.top,ParentWin,NULL,hinst,NULL);
-	if (hwnd) {
+
+	if ( hwnd ) {
 		SendMessage(hwnd, EM_SETMARGINS, EC_LEFTMARGIN, 8);
 		SendMessage(hwnd, EM_SETEVENTMASK, 0, ENM_UPDATE); //ENM_SCROLL doesn't work for thumb movements!
 
 		PostMessage( ParentWin, WM_COMMAND, MAKELONG( lcp_ascii, itm_fontstyle ), (LPARAM)hwnd );
 
-        std::ostringstream oss;
-        elfdump( reader, oss );
+        HFONT font = (HFONT)GetStockObject( ANSI_FIXED_FONT );
+        SendMessage( hwnd, WM_SETFONT, (WPARAM)font, MAKELPARAM( true, 0 ) );
 
-        CHARFORMAT cf;
-        cf.cbSize = sizeof( cf );
-        cf.dwMask = CFM_FACE;
-        strcpy( cf.szFaceName, "Courier New" );
-        SendMessage( hwnd, EM_SETCHARFORMAT, SCF_ALL, (LPARAM)&cf );
-
-        SetWindowText( hwnd, oss.str().c_str() );
+        SendMessage( hwnd, WM_SETTEXT, 0, (LPARAM)text.c_str() ); 
+        //SetWindowText( hwnd, oss.str().c_str() );
 
         PostMessage( ParentWin, WM_COMMAND, MAKELONG( 0, itm_percent ), (LPARAM)hwnd );
-		success = true;
 
-		if ( !success ) {
-			DestroyWindow( hwnd );
-			hwnd = NULL;
-		}
+		ShowWindow( hwnd, SW_SHOW );
 	}
 
-    lastloadtime = GetCurrentTime();
-	if ( hwnd )
-		ShowWindow( hwnd, SW_SHOW );
 	return hwnd;
 }
 
@@ -219,59 +160,6 @@ int __stdcall ListLoadNextW(HWND ParentWin,HWND ListWin,WCHAR* FileToLoad,int Sh
 	char *pdata;
 	BOOL success=false;
 
-/*
-    if (ShowFlags & lcp_forceshow==0) {  // don't check extension in this case!
-        WCHAR *p;
-		p=wcsrchr(FileToLoad,'\\');
-		if (!p)
-			return ANYELF_ERROR;
-		p=wcsrchr(p,'.');
-		if (!p || (_wcsicmp(p,supportedextension1)!=0 && _wcsicmp(p,supportedextension2)!=0
-			   && _wcsicmp(p,supportedextension3)!=0 && _wcsicmp(p,supportedextension4)!=0))
-			return ANYELF_ERROR;
-	}
-*/
-	// Extension is supported -> load file
-	HANDLE f=CreateFileT(FileToLoad,GENERIC_READ,FILE_SHARE_READ,NULL,OPEN_EXISTING,
-							FILE_FLAG_SEQUENTIAL_SCAN,NULL);
-	if (f==INVALID_HANDLE_VALUE)
-		return ANYELF_ERROR;
-
-	lastloadtime=GetCurrentTime();
-
-	GetClientRect(ParentWin,&r);
-	// Create window invisbile, only show when data fully loaded!
-	if (ListWin) {
-		SetWindowText(ListWin,"");  // clear
-		SendMessage(ListWin, EM_SETMARGINS, EC_LEFTMARGIN, 8);
-		SendMessage(ListWin, EM_SETEVENTMASK, 0, ENM_UPDATE); //ENM_SCROLL doesn't work for thumb movements!
-
-		PostMessage(ParentWin,WM_COMMAND,MAKELONG(lcp_ansi,itm_fontstyle),(LPARAM)ListWin);
-
-		int l=GetFileSize(f,NULL);
-		pdata=(char*)malloc(l+1);
-		if (pdata) {
-			ReadFile(f,pdata,l,&w2,NULL);
-			if (w2<0) w2=0;
-			if (w2>(DWORD)l) w2=l;
-			pdata[w2]=0;
-			if (strlen(pdata)==w2) {     // Make sure the file doesn't contain any 0x00 char!
-				char *p2=InsertLineNumbers(pdata,w2);
-				if (p2) {
-					SetWindowText(ListWin,p2);
-					free(p2);
-					PostMessage(ParentWin,WM_COMMAND,MAKELONG(0,itm_percent),(LPARAM)ListWin);
-					success=true;
-				}
-			}
-			free(pdata);
-		}
-		if (!success) {
-			return ANYELF_ERROR;
-		}
-	}
-	CloseHandle(f);
-	lastloadtime=GetCurrentTime();
 	return ANYELF_OK;
 }
 
@@ -557,7 +445,6 @@ HBITMAP __stdcall ListGetPreviewBitmapW(WCHAR* FileToLoad,int width,int height,
 	
 	ch=contentbuf[contentbuflen];
 	contentbuf[contentbuflen]=0;
-	newbuf=InsertLineNumbers(contentbuf,contentbuflen);
 	contentbuf[contentbuflen]=ch;  // make sure that contentbuf is NOT modified!
 
 	if (is_nt) {
@@ -586,7 +473,7 @@ HBITMAP __stdcall ListGetPreviewBitmapW(WCHAR* FileToLoad,int width,int height,
       DEFAULT_QUALITY,VARIABLE_PITCH | FF_DONTCARE,"Arial");
     oldfont=(HFONT)SelectObject(dc_big,font);
     FillRect(dc_big,&r,(HBRUSH)GetStockObject(WHITE_BRUSH));
-    DrawText(dc_big,newbuf,(int)strlen(newbuf),&r,DT_EXPANDTABS);
+    DrawText(dc_big,"Hello World!",12,&r,DT_EXPANDTABS);
     SelectObject(dc_big,oldfont);
     DeleteObject(font);
 
