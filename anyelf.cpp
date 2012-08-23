@@ -138,7 +138,7 @@ HWND __stdcall ListLoad(HWND ParentWin,char* FileToLoad,int ShowFlags)
     GetClientRect(ParentWin,&r);
 	// Create window invisbile, only show when data fully loaded!
 	hwnd=CreateWindow("EDIT","",WS_CHILD | ES_MULTILINE | ES_WANTRETURN | ES_READONLY |
-		                        WS_HSCROLL | ES_AUTOVSCROLL | ES_NOHIDESEL,
+		                        WS_HSCROLL | WS_VSCROLL | ES_AUTOVSCROLL | ES_NOHIDESEL,
 		r.left,r.top,r.right-r.left,
 		r.bottom-r.top,ParentWin,NULL,hinst,NULL);
 
