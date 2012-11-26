@@ -1,7 +1,7 @@
 /* Contents of file anyelf.h */
 #include <string>
 #include <sstream>
-#include <elfio.hpp>
+#include <elfio/elfio.hpp>
 
 #define lc_copy		1
 #define lc_newparams	2

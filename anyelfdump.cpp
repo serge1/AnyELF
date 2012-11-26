@@ -31,8 +31,8 @@ THE SOFTWARE.
 
 #include <string>
 #include <sstream>
-#include <elfio.hpp>
-#include <elfio_dump.hpp>
+#include <elfio/elfio.hpp>
+#include <elfio/elfio_dump.hpp>
 
 using namespace std;
 using namespace ELFIO;

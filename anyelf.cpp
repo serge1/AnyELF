@@ -14,7 +14,7 @@
 
 #include "anyelf.h"
 #include "cunicode.h"
-#include <elfio.hpp>
+#include <elfio/elfio.hpp>
 
 #define supportedextension1 L".c"
 #define supportedextension2 L".cpp"
