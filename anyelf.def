@@ -5,8 +5,6 @@ EXPORTS
   ListSendCommand
   ListCloseWindow
   ListSearchText
-  ListSearchDialog
   ListGetDetectString
   ListNotificationReceived
   ListSetDefaultParams
-  ListGetPreviewBitmap

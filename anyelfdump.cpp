@@ -38,13 +38,21 @@ using namespace std;
 using namespace ELFIO;
 
 
-int elfdump( const elfio& reader, std::ostringstream& out )
+std::string elfdump( std::string fileToLoad )
 {
+    ELFIO::elfio reader;
+
+    if ( !reader.load( fileToLoad ) ) {
+        return "";
+    }
+
+    std::ostringstream out;
+
     dump::header         ( out, reader );
     dump::section_headers( out, reader );
     dump::segment_headers( out, reader );
     dump::symbol_tables  ( out, reader );
     dump::notes          ( out, reader );
 
-    return 0;
+    return out.str();
 }
