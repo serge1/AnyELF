@@ -20,6 +20,7 @@
 
 HINSTANCE   hinst;
 std::string g_text;
+std::string g_text_lo;
 char        inifilename[MAX_PATH]="anyelf.ini";  // Unused in this plugin,
                                                  // may be used to save data
 
@@ -137,6 +138,8 @@ ListLoadNext( HWND parentWin, HWND listWin, char* fileToLoad, int showFlags)
     }
 
     searchAndReplace( g_text, "\n", "\r\n" );
+    g_text_lo.resize( g_text.length() );
+    std::transform( g_text.begin(), g_text.end(), g_text_lo.begin(), ::tolower );
 
     HFONT font;
     if ( showFlags & lcp_ansi ) {
@@ -176,8 +179,8 @@ ListNotificationReceived( HWND listWin, int message, WPARAM wParam, LPARAM lPara
         switch ( HIWORD( wParam ) ) {
         case EN_UPDATE:
         case EN_VSCROLL:
-            firstvisible = SendMessage( listWin, EM_GETFIRSTVISIBLELINE, 0, 0 );
-            linecount    = SendMessage( listWin, EM_GETLINECOUNT, 0, 0 );
+            firstvisible = (int)SendMessage( listWin, EM_GETFIRSTVISIBLELINE, 0, 0 );
+            linecount    = (int)SendMessage( listWin, EM_GETLINECOUNT, 0, 0 );
             if ( linecount > 0 ) {
                 int percent = MulDiv( firstvisible, 100, linecount );
                 PostMessage( GetParent( listWin ), WM_COMMAND,
@@ -220,14 +223,14 @@ ListSendCommand( HWND listWin, int command, int parameter )
         SendMessage( listWin, EM_SETSEL, 0, -1 );
         return LISTPLUGIN_OK;
     case lc_setpercent:
-        int firstvisible = SendMessage( listWin, EM_GETFIRSTVISIBLELINE, 0, 0 );
-        int linecount    = SendMessage( listWin, EM_GETLINECOUNT, 0, 0 );
+        int firstvisible = (int)SendMessage( listWin, EM_GETFIRSTVISIBLELINE, 0, 0 );
+        int linecount    = (int)SendMessage( listWin, EM_GETLINECOUNT, 0, 0 );
         if ( linecount > 0 ) {
             int pos = MulDiv( parameter, linecount, 100 );
             SendMessage( listWin, EM_LINESCROLL, 0, pos - firstvisible );
-            firstvisible = SendMessage( listWin, EM_GETFIRSTVISIBLELINE, 0, 0 );
+            firstvisible = (int)SendMessage( listWin, EM_GETFIRSTVISIBLELINE, 0, 0 );
             // Place caret on first visible line!
-            int firstchar = SendMessage( listWin, EM_LINEINDEX, firstvisible, 0);
+            int firstchar = (int)SendMessage( listWin, EM_LINEINDEX, firstvisible, 0);
             SendMessage( listWin, EM_SETSEL, firstchar, firstchar );
             pos = MulDiv( firstvisible, 100, linecount );
             // Update percentage display
@@ -243,32 +246,35 @@ ListSendCommand( HWND listWin, int command, int parameter )
 
 //---------------------------------------------------------------------------
 static int
-find_string( std::string& source, std::string search, int start, int params )
+find_string( std::string search, int start, int params )
 {
-    std::string text( source );
+    std::string* text;
 
     if ( !( params & lcs_matchcase ) ) {
-        std::transform( text.begin(), text.end(), text.begin(), ::tolower );
+        text = &g_text_lo;
         std::transform( search.begin(), search.end(), search.begin(), ::tolower );
     }
-    
-    int pos;
+    else {
+        text = &g_text;
+    }
+
+    size_t pos;
     do {
         if ( params & lcs_backwards ) {
-            pos = text.rfind( search, start );
-            start = pos - 1;
+            start = start - 1;
+            pos   = text->rfind( search, start - 1 );
         }
         else {
-            pos = text.find( search, start );
-            start = pos + 1;
+            pos   = text->find( search, start );
+            start = (int)pos + 1;
         }
     } while ( ( pos != std::string::npos ) &&
               ( params & lcs_wholewords )  &&
-              ( ::isalnum( text[pos - 1] ) | ::isalnum( text[pos + search.size()] ) ) );
+              ( ::isalnum( (*text)[pos - 1] ) | ::isalnum( (*text)[pos + search.size()] ) ) );
     if ( pos == std::string::npos ) {
         return -1;
     }
-    return pos;
+    return (int)pos;
 }
 
 
@@ -278,10 +284,10 @@ ListSearchText( HWND listWin, char* searchString, int searchParameter )
 {
     int startPos;
 
-    if ( searchParameter & lcs_findfirst ) {
+    if ( ( searchParameter & lcs_findfirst ) && !( searchParameter & lcs_backwards ) ) {
         //Find first: Start at top visible line
-        int firstLine = SendMessage( listWin, EM_GETFIRSTVISIBLELINE, 0, 0 );
-        startPos = SendMessage( listWin, EM_LINEINDEX, firstLine, 0 );
+        int firstline = (int)SendMessage( listWin, EM_GETFIRSTVISIBLELINE, 0, 0 );
+        startPos      = (int)SendMessage( listWin, EM_LINEINDEX, firstline, 0 );
         SendMessage( listWin, EM_SETSEL, startPos, startPos );
     } else {
         //Find next: Start at current selection+1
@@ -289,15 +295,15 @@ ListSearchText( HWND listWin, char* searchString, int searchParameter )
         ++startPos;
     }
 
-    int index = find_string( g_text, searchString, startPos, searchParameter );
+    int index = find_string( searchString, startPos, searchParameter );
 
     if ( index != -1 ) {
-        int indexend = index + strlen( searchString );
+        int indexend = index + (int)strlen( searchString );
         SendMessage( listWin, EM_SETSEL, index, indexend );
-        int line = SendMessage( listWin, EM_LINEFROMCHAR, index, 0 ) - 3;
+        int line = (int)SendMessage( listWin, EM_LINEFROMCHAR, index, 0 ) - 3;
         if ( line < 0 )
             line = 0;
-        line -= SendMessage( listWin, EM_GETFIRSTVISIBLELINE, 0, 0 );
+        line -= (int)SendMessage( listWin, EM_GETFIRSTVISIBLELINE, 0, 0 );
         SendMessage( listWin, EM_LINESCROLL, 0, line );
 
         return LISTPLUGIN_OK;
@@ -306,158 +312,4 @@ ListSearchText( HWND listWin, char* searchString, int searchParameter )
     SendMessage( listWin, EM_SETSEL, -1, -1);  // Restart search at the beginning
 
     return LISTPLUGIN_ERROR;
-}
-
-
-//---------------------------------------------------------------------------
-int APIENTRY
-ListPrint(HWND ListWin,char* FileToPrint,char* DefPrinter,int PrintFlags,RECT* Margins)
-{
-    PRINTDLG PrintDlgRec;
-    memset(&PrintDlgRec,0,sizeof(PRINTDLG));
-    PrintDlgRec.lStructSize=sizeof(PRINTDLG);
-
-    PrintDlgRec.Flags= PD_ALLPAGES | PD_USEDEVMODECOPIESANDCOLLATE | PD_RETURNDC;
-    PrintDlgRec.nFromPage   = 0xFFFF; 
-    PrintDlgRec.nToPage     = 0xFFFF; 
-    PrintDlgRec.nMinPage	= 1;
-    PrintDlgRec.nMaxPage	= 0xFFFF;
-    PrintDlgRec.nCopies		= 1;
-    PrintDlgRec.hwndOwner	= ListWin;// MUST be Zero, otherwise crash!
-    if (PrintDlg(&PrintDlgRec)) 
-    {
-        HDC hdc=PrintDlgRec.hDC;
-        DOCINFO DocInfo;
-        POINT offset,physsize,start,avail,printable;
-        int LogX,LogY;
-        RECT rcsaved;
-
-        // Warning: PD_ALLPAGES is zero!
-        BOOL PrintSel=(PrintDlgRec.Flags & PD_SELECTION);
-        BOOL PrintPages=(PrintDlgRec.Flags & PD_PAGENUMS);
-        int PageFrom=1;
-        int PageTo=0x7FFF;
-        if (PrintPages) {
-            PageFrom=PrintDlgRec.nFromPage;
-            PageTo=PrintDlgRec.nToPage;
-            if (PageTo<=0) PageTo=0x7FFF;
-        }
-
-
-        memset(&DocInfo,0,sizeof(DOCINFO));
-        DocInfo.cbSize=sizeof(DOCINFO);
-        DocInfo.lpszDocName=FileToPrint;
-        if (StartDoc(hdc,&DocInfo)) {
-            SetMapMode(hdc,MM_LOMETRIC);
-            offset.x=GetDeviceCaps(hdc,PHYSICALOFFSETX);
-            offset.y=GetDeviceCaps(hdc,PHYSICALOFFSETY);
-            DPtoLP(hdc,&offset,1);
-            physsize.x=GetDeviceCaps(hdc,PHYSICALWIDTH);
-            physsize.y=GetDeviceCaps(hdc,PHYSICALHEIGHT);
-            DPtoLP(hdc,&physsize,1);
-
-            start.x=Margins->left-offset.x;
-            start.y=-Margins->top-offset.y;
-            if (start.x<0)
-                start.x=0;
-            if (start.y>0)
-                start.y=0;
-            avail.x=GetDeviceCaps(hdc,HORZRES);
-            avail.y=GetDeviceCaps(hdc,VERTRES);
-            DPtoLP(hdc,&avail,1);
-
-            printable.x=min(physsize.x-(Margins->right+Margins->left),avail.x-start.x);
-            printable.y=max(physsize.y+(Margins->top+Margins->bottom),avail.y-start.y);
-            
-            LogX=GetDeviceCaps(hdc, LOGPIXELSX);
-            LogY=GetDeviceCaps(hdc, LOGPIXELSY);
-
-            SendMessage(ListWin, EM_FORMATRANGE, 0, 0);
-
-            FORMATRANGE Range;
-            memset(&Range,0,sizeof(FORMATRANGE));
-            Range.hdc=hdc;
-            Range.hdcTarget=hdc;
-            LPtoDP(hdc,&start,1);
-            LPtoDP(hdc,&printable,1);
-            Range.rc.left = start.x * 1440 / LogX;
-            Range.rc.top = start.y * 1440 / LogY;
-            Range.rc.right = (start.x+printable.x) * 1440 / LogX;
-            Range.rc.bottom = (start.y+printable.y) * 1440 / LogY;
-            SetMapMode(hdc,MM_TEXT);
-
-            BOOL PrintAborted=false;
-            Range.rcPage = Range.rc;
-            rcsaved = Range.rc;
-            int CurrentPage = 1;
-            int LastChar = 0;
-            int LastChar2= 0;
-            int MaxLen = SendMessage(ListWin,WM_GETTEXTLENGTH,0,0);
-            Range.chrg.cpMax = -1;
-            if (PrintPages) {
-                do {
-                    Range.chrg.cpMin = LastChar;
-                    if (CurrentPage<PageFrom) {
-                        LastChar = SendMessage(ListWin, EM_FORMATRANGE, 0, (LPARAM)&Range);
-                    } else {
-                        //waitform.ProgressLabel.Caption:=spage+inttostr(CurrentPage);
-                        //application.processmessages;
-                        LastChar = SendMessage(ListWin, EM_FORMATRANGE, 1, (LPARAM)&Range);
-                    }
-                    // Warning: At end of document, LastChar may be<MaxLen!!!
-                    if (LastChar!=-1 && LastChar < MaxLen) {
-                        Range.rc=rcsaved;                // Check whether another page comes
-                        Range.rcPage = Range.rc;
-                        Range.chrg.cpMin = LastChar;
-                        LastChar2= SendMessage(ListWin, EM_FORMATRANGE, 0, (LPARAM)&Range);
-                        if (LastChar<LastChar2 && LastChar < MaxLen && LastChar != -1 &&
-                          CurrentPage>=PageFrom && CurrentPage<PageTo) {
-                            EndPage(hdc);
-                        }
-                    }
-
-                    CurrentPage++;
-                    Range.rc=rcsaved;
-                    Range.rcPage = Range.rc;
-                } while (LastChar < MaxLen && LastChar != -1 && LastChar<LastChar2 &&
-                         (PrintPages && CurrentPage<=PageTo) && !PrintAborted);
-            } else {
-                if (PrintSel) {
-                    SendMessage(ListWin,EM_GETSEL,(WPARAM)&LastChar,(LPARAM)&MaxLen);
-                    Range.chrg.cpMax = MaxLen;
-                }
-                do {
-                    Range.chrg.cpMin = LastChar;
-                    //waitform.ProgressLabel.Caption:=spage+inttostr(CurrentPage);
-                    //waitform.ProgressLabel.update;
-                    //application.processmessages;
-                    LastChar = SendMessage(ListWin, EM_FORMATRANGE, 1, (LPARAM)&Range);
-
-                    // Warning: At end of document, LastChar may be<MaxLen!!!
-                    if (LastChar!=-1 && LastChar < MaxLen) {
-                        Range.rc=rcsaved;                // Check whether another page comes
-                        Range.rcPage = Range.rc;
-                        Range.chrg.cpMin = LastChar;
-                        LastChar2= SendMessage(ListWin, EM_FORMATRANGE, 0, (LPARAM)&Range);
-                        if (LastChar<LastChar2 && LastChar < MaxLen && LastChar != -1) {
-                            EndPage(hdc);
-                        }
-                    }
-                    CurrentPage++;
-                    Range.rc=rcsaved;
-                    Range.rcPage = Range.rc;
-                } while (LastChar<LastChar2 && LastChar < MaxLen && LastChar != -1 && !PrintAborted);
-            }
-            if (PrintAborted)
-                AbortDoc(hdc);
-            else
-                EndDoc(hdc);
-        } //StartDoc
-  
-        SendMessage(ListWin, EM_FORMATRANGE, 0, 0);
-        DeleteDC(PrintDlgRec.hDC);
-    }
-    if (PrintDlgRec.hDevNames)
-        GlobalFree(PrintDlgRec.hDevNames);
-    return 0;
 }

@@ -229,6 +229,7 @@
       <DataExecutionPrevention />
       <ImportLibrary>.\Debug/anyelf.lib</ImportLibrary>
       <TargetMachine>MachineX86</TargetMachine>
+      <OutputFile>c:\totalcmd\plugins\wlx\anyelf\anyelf.wlx</OutputFile>
     </Link>
     <Bscmake>
       <SuppressStartupBanner>true</SuppressStartupBanner>
@@ -284,7 +285,6 @@
   <ItemGroup>
     <ClCompile Include="anyelf.cpp" />
     <ClCompile Include=".\anyelfdump.cpp" />
-    <ClCompile Include="cunicode.cpp" />
   </ItemGroup>
   <ItemGroup>
     <None Include="anyelf.def" />

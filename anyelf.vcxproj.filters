@@ -21,9 +21,6 @@
     <ClCompile Include=".\anyelfdump.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="cunicode.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <None Include="anyelf.def">
