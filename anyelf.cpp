@@ -11,6 +11,7 @@
 #include <richedit.h>
 #include <commdlg.h>
 #include <math.h> 
+#include <algorithm> 
 
 #include "anyelf.h"
 #include "cunicode.h"
@@ -241,16 +242,46 @@ ListSendCommand( HWND listWin, int command, int parameter )
 
 
 //---------------------------------------------------------------------------
-int APIENTRY
-ListSearchText( HWND listWin,char* searchString,int searchParameter )
+static int
+find_string( std::string& source, std::string search, int start, int params )
 {
-    FINDTEXT find;
-    int      startPos, flags;
+    std::string text( source );
+
+    if ( !( params & lcs_matchcase ) ) {
+        std::transform( text.begin(), text.end(), text.begin(), ::tolower );
+        std::transform( search.begin(), search.end(), search.begin(), ::tolower );
+    }
+    
+    int pos;
+    do {
+        if ( params & lcs_backwards ) {
+            pos = text.rfind( search, start );
+            start = pos - 1;
+        }
+        else {
+            pos = text.find( search, start );
+            start = pos + 1;
+        }
+    } while ( ( pos != std::string::npos ) &&
+              ( params & lcs_wholewords )  &&
+              ( ::isalnum( text[pos - 1] ) | ::isalnum( text[pos + search.size()] ) ) );
+    if ( pos == std::string::npos ) {
+        return -1;
+    }
+    return pos;
+}
+
+
+//---------------------------------------------------------------------------
+int APIENTRY
+ListSearchText( HWND listWin, char* searchString, int searchParameter )
+{
+    int startPos;
 
     if ( searchParameter & lcs_findfirst ) {
         //Find first: Start at top visible line
-        startPos = SendMessage( listWin, EM_LINEINDEX,
-            SendMessage( listWin, EM_GETFIRSTVISIBLELINE, 0, 0 ), 0 );
+        int firstLine = SendMessage( listWin, EM_GETFIRSTVISIBLELINE, 0, 0 );
+        startPos = SendMessage( listWin, EM_LINEINDEX, firstLine, 0 );
         SendMessage( listWin, EM_SETSEL, startPos, startPos );
     } else {
         //Find next: Start at current selection+1
@@ -258,19 +289,10 @@ ListSearchText( HWND listWin,char* searchString,int searchParameter )
         ++startPos;
     }
 
-    find.chrg.cpMin = startPos;
-    find.chrg.cpMax = SendMessage( listWin, WM_GETTEXTLENGTH, 0, 0 );
-    flags           = 0;
-    if ( searchParameter & lcs_wholewords )
-        flags |= FR_WHOLEWORD;
-    if ( searchParameter & lcs_matchcase )
-        flags |= FR_MATCHCASE;
-    if ( !( searchParameter & lcs_backwards ) )
-        flags |= FR_DOWN;
-    find.lpstrText = searchString;
-    int index = SendMessage( listWin, EM_FINDTEXT, flags, (LPARAM)&find );
+    int index = find_string( g_text, searchString, startPos, searchParameter );
+
     if ( index != -1 ) {
-        int indexend = index+strlen( searchString );
+        int indexend = index + strlen( searchString );
         SendMessage( listWin, EM_SETSEL, index, indexend );
         int line = SendMessage( listWin, EM_LINEFROMCHAR, index, 0 ) - 3;
         if ( line < 0 )
