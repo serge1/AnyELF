@@ -90,8 +90,6 @@ ListGetDetectString( char* detectString, int maxlen )
 void APIENTRY
 ListSetDefaultParams( ListDefaultParamStruct* dps )
 {
-    dps->PluginInterfaceVersionHi  = ANYELF_VERSION_HI;
-    dps->PluginInterfaceVersionLow = ANYELF_VERSION_LOW;
     strlcpy( inifilename, dps->DefaultIniName, MAX_PATH-1 );
 }
 

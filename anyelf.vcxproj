@@ -85,7 +85,7 @@
     <LinkIncremental>false</LinkIncremental>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
-    <OutDir>Debug\</OutDir>
+    <OutDir>..\..\totalcmd\plugins\wlx\anyelf</OutDir>
     <IntDir>.\Debug\</IntDir>
     <TargetName>anyelf</TargetName>
     <TargetExt>.wlx</TargetExt>
