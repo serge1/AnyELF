@@ -1,5 +1,5 @@
 [plugininstall]
-description= ELF file viewer. Version 1.2
+description= ELF file viewer. Version 1.3
 type=wlx
 file=anyelf.wlx
 defaultdir=plugins\wlx\anyelf
