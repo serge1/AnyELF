@@ -2,7 +2,7 @@
 #define _ANYELF__H
 
 #define ANYELF_VERSION_HI  1
-#define ANYELF_VERSION_LOW 1
+#define ANYELF_VERSION_LOW 5
 
 #include <string>
 
