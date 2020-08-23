@@ -54,6 +54,7 @@ std::string elfdump( std::string fileToLoad )
     dump::symbol_tables  ( out, reader );
     dump::dynamic_tags   ( out, reader );
     dump::notes          ( out, reader );
+    dump::modinfo        (out, reader);
     dump::section_datas  ( out, reader );
     dump::segment_datas  ( out, reader );
     
