@@ -3,6 +3,7 @@ Release
 Win32
 x64
 ipch
+build
 
 anyelf.ncb
 anyelf.*.user
