@@ -1,6 +1,12 @@
 #ifndef _ANYELF__H
 #define _ANYELF__H
-
+#ifndef WIN32
+#define MAX_PATH 260
+#define DWORD uint16_t
+#define HINSTANCE void*
+#define HWND void*
+#define APIENTRY
+#endif
 #define ANYELF_VERSION_HI  1
 #define ANYELF_VERSION_LOW 5
 
@@ -42,27 +48,37 @@ typedef struct {
     char DefaultIniName[MAX_PATH];
 } ListDefaultParamStruct;
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 HWND APIENTRY ListLoad( HWND parentWin, char* fileToLoad, int showFlags );
-HWND APIENTRY ListLoadW( HWND parentWin, WCHAR* fileToLoad, int showFlags );
 int  APIENTRY ListLoadNext( HWND parentWin, HWND pluginWin, char* fileToLoad, int showFlags );
-int  APIENTRY ListLoadNextW( HWND parentWin, HWND pluginWin, WCHAR* fileToLoad, int showFlags );
 void APIENTRY ListCloseWindow( HWND listWin );
 void APIENTRY ListGetDetectString( char* detectString, int maxlen );
 int  APIENTRY ListSearchText( HWND listWin, char* searchString, int searchParameter );
-int  APIENTRY ListSearchTextW( HWND listWin, WCHAR* searchString, int searchParameter );
 int  APIENTRY ListSearchDialog( HWND listWin, int findNext );
 int  APIENTRY ListSendCommand( HWND listWin, int command, int parameter );
+void APIENTRY ListSetDefaultParams( ListDefaultParamStruct* dps );
+#ifdef __cplusplus
+}
+#endif
+
+#ifdef WIN32
+int  APIENTRY ListNotificationReceived( HWND listWin, int message, WPARAM wParam, LPARAM lParam );
+HWND APIENTRY ListLoadW( HWND parentWin, WCHAR* fileToLoad, int showFlags );
+int  APIENTRY ListLoadNextW( HWND parentWin, HWND pluginWin, WCHAR* fileToLoad, int showFlags );
+int  APIENTRY ListSearchTextW( HWND listWin, WCHAR* searchString, int searchParameter );
 int  APIENTRY ListPrint( HWND listWin, char* fileToPrint, char* defPrinter,
                          int printFlags, RECT* margins );
 int  APIENTRY ListPrintW( HWND listWin, WCHAR* fileToPrint, WCHAR* defPrinter,
                           int printFlags, RECT* margins );
-int  APIENTRY ListNotificationReceived( HWND listWin, int message, WPARAM wParam, LPARAM lParam );
-void APIENTRY ListSetDefaultParams( ListDefaultParamStruct* dps );
 
 HBITMAP APIENTRY ListGetPreviewBitmap( char* fileToLoad, int width, int height,
                                        char* contentbuf, int contentbuflen );
 HBITMAP APIENTRY ListGetPreviewBitmapW( WCHAR* fileToLoad, int width, int height,
                                         char* contentbuf,int contentbuflen);
+#endif // WIN32
 
 std::string elfdump( std::string fileToLoad );
 

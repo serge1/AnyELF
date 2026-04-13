@@ -1,6 +1,6 @@
 // anyelf.cpp : Defines the entry point for the DLL application.
 //
-
+#ifdef WIN32
 #define _CRT_SECURE_NO_WARNINGS
 #define WIN32_LEAN_AND_MEAN		// Exclude rarely-used stuff from Windows headers
 
@@ -11,10 +11,14 @@
 #include <richedit.h>
 #include <commdlg.h>
 #include <math.h> 
-#include <algorithm> 
-
-#include "anyelf.h"
 #include "cunicode.h"
+#else
+#include <gtk/gtk.h>
+#include <fstream>
+#include <iostream>
+#endif
+#include <algorithm>
+#include "anyelf.h"
 
 #define parsefunction "[0]=127 & [1]=\"E\" & [2]=\"L\" & [3]=\"F\""
 
@@ -54,7 +58,7 @@ searchAndReplace( std::string& value, std::string const& search,
     }
 }
 
-
+#ifdef WIN32
 //---------------------------------------------------------------------------
 BOOL APIENTRY
 DllMain( HANDLE hModule, 
@@ -76,8 +80,7 @@ DllMain( HANDLE hModule,
 
     return TRUE;
 }
-
-
+#endif
 //---------------------------------------------------------------------------
 void APIENTRY
 ListGetDetectString( char* detectString, int maxlen )
@@ -93,11 +96,12 @@ ListSetDefaultParams( ListDefaultParamStruct* dps )
     strlcpy( inifilename, dps->DefaultIniName, MAX_PATH-1 );
 }
 
-
 //---------------------------------------------------------------------------
 HWND APIENTRY
 ListLoad( HWND parentWin, char* fileToLoad, int showFlags )
 {
+
+#ifdef WIN32
     HWND listWin = 0;
     RECT r;
     
@@ -114,19 +118,26 @@ ListLoad( HWND parentWin, char* fileToLoad, int showFlags )
         SendMessage( listWin, EM_SETEVENTMASK, 0, ENM_UPDATE ); //ENM_SCROLL doesn't work for thumb movements!
 
         ShowWindow( listWin, SW_SHOW );
-
-        int ret = ListLoadNext( parentWin, listWin, fileToLoad, showFlags );
-        if ( ret == LISTPLUGIN_ERROR ) {
-            DestroyWindow( listWin );
-            listWin = 0;
-        }
     }
-
-    return listWin;
+#else
+    GtkWidget *listWin = gtk_scrolled_window_new(NULL, NULL);
+	gtk_container_add(GTK_CONTAINER(GTK_WIDGET(parentWin)), listWin);
+#endif
+    int ret = ListLoadNext( parentWin, (HWND)listWin, fileToLoad, showFlags );
+    if ( ret == LISTPLUGIN_ERROR ) {
+#ifdef WIN32
+        DestroyWindow( listWin );
+        listWin = 0;
+        return listWin;
+#else
+        GtkWidget *widget = (GtkWidget*)listWin;
+        gtk_widget_destroy(widget);
+        return 0;
+#endif
+    }
+    return (HWND)listWin;
 }
 
-
-//---------------------------------------------------------------------------
 int APIENTRY
 ListLoadNext( HWND parentWin, HWND listWin, char* fileToLoad, int showFlags)
 {
@@ -139,6 +150,7 @@ ListLoadNext( HWND parentWin, HWND listWin, char* fileToLoad, int showFlags)
     g_text_lo.resize( g_text.length() );
     std::transform( g_text.begin(), g_text.end(), g_text_lo.begin(), ::tolower );
 
+#ifdef WIN32
     HFONT font;
     if ( showFlags & lcp_ansi ) {
         font = (HFONT)GetStockObject( ANSI_FIXED_FONT );
@@ -151,7 +163,26 @@ ListLoadNext( HWND parentWin, HWND listWin, char* fileToLoad, int showFlags)
     SendMessage( listWin, WM_SETTEXT, 0, (LPARAM)g_text.c_str() ); 
 
     PostMessage( parentWin, WM_COMMAND, MAKELONG( 0, itm_percent ), (LPARAM)listWin );
+#else
+    GtkWidget *textview = gtk_text_view_new();
+    gtk_text_view_set_editable(GTK_TEXT_VIEW(textview), FALSE);
+    gtk_text_view_set_cursor_visible(GTK_TEXT_VIEW(textview), FALSE);
 
+    // Use a monospaced font for better alignment (GTK2 way)
+    PangoFontDescription *font_desc = pango_font_description_from_string("Monospace");
+    GtkWidget *textview_widget = GTK_WIDGET(textview);
+    gtk_widget_modify_font(textview_widget, font_desc);
+    pango_font_description_free(font_desc);
+
+    gtk_container_add(GTK_CONTAINER((GtkWidget*)listWin), textview);
+
+    GtkTextBuffer *buffer = gtk_text_view_get_buffer(GTK_TEXT_VIEW(textview));
+    gtk_text_buffer_set_text(buffer, g_text.c_str(), -1);
+    //set listwint to active
+    gtk_widget_grab_focus((GtkWidget*)textview);
+    gtk_widget_show_all((GtkWidget*)listWin);
+
+#endif
     return LISTPLUGIN_OK;
 }
 
@@ -160,12 +191,19 @@ ListLoadNext( HWND parentWin, HWND listWin, char* fileToLoad, int showFlags)
 void APIENTRY
 ListCloseWindow( HWND listWin )
 {
-    DestroyWindow( listWin );
+    if (listWin) {
+#ifdef WIN32
+        DestroyWindow( listWin );
+#else	
+        GtkWidget *widget = (GtkWidget*)listWin;
+        gtk_widget_destroy(widget);
+#endif
+    }
     return;
 }
 
-
 //---------------------------------------------------------------------------
+#ifdef WIN32
 int APIENTRY
 ListNotificationReceived( HWND listWin, int message, WPARAM wParam, LPARAM lParam )
 {
@@ -196,12 +234,16 @@ ListNotificationReceived( HWND listWin, int message, WPARAM wParam, LPARAM lPara
     }
     return 0;
 }
+#endif
 
 
 //---------------------------------------------------------------------------
 int APIENTRY
 ListSendCommand( HWND listWin, int command, int parameter )
 {
+#ifndef WIN32
+        return LISTPLUGIN_OK;
+#else
     switch ( command ) {
     case lc_copy:
         SendMessage( listWin, WM_COPY, 0, 0 );
@@ -239,6 +281,7 @@ ListSendCommand( HWND listWin, int command, int parameter )
     }
 
     return LISTPLUGIN_ERROR;
+#endif
 }
 
 
@@ -248,6 +291,7 @@ find_string( std::string search, int start, int params )
 {
     std::string* text;
 
+    // add debug message to stdout
     if ( !( params & lcs_matchcase ) ) {
         text = &g_text_lo;
         std::transform( search.begin(), search.end(), search.begin(), ::tolower );
@@ -259,8 +303,8 @@ find_string( std::string search, int start, int params )
     size_t pos;
     do {
         if ( params & lcs_backwards ) {
-            start = start - 1;
-            pos   = text->rfind( search, start - 1 );
+            start = start - search.length() - 1;
+            pos   = text->rfind( search, start);
         }
         else {
             pos   = text->find( search, start );
@@ -275,39 +319,113 @@ find_string( std::string search, int start, int params )
     return (int)pos;
 }
 
-
 //---------------------------------------------------------------------------
 int APIENTRY
 ListSearchText( HWND listWin, char* searchString, int searchParameter )
 {
     int startPos;
+#ifndef WIN32
+    GtkTextIter start_iter, end_iter;
+    //get text view from scroll view
+    GtkWidget *textview = gtk_bin_get_child(GTK_BIN(listWin));
+    GtkTextBuffer *buffer = gtk_text_view_get_buffer(GTK_TEXT_VIEW(textview));
+#endif 
 
     if ( ( searchParameter & lcs_findfirst ) && !( searchParameter & lcs_backwards ) ) {
         //Find first: Start at top visible line
+#ifdef WIN32
         int firstline = (int)SendMessage( listWin, EM_GETFIRSTVISIBLELINE, 0, 0 );
         startPos      = (int)SendMessage( listWin, EM_LINEINDEX, firstline, 0 );
         SendMessage( listWin, EM_SETSEL, startPos, startPos );
+#else
+        gtk_text_buffer_get_start_iter(buffer, &start_iter);
+        startPos = gtk_text_iter_get_offset(&start_iter);
+#endif
     } else {
         //Find next: Start at current selection+1
+#ifdef WIN32
         SendMessage( listWin, EM_GETSEL, (WPARAM)&startPos, 0 );
         ++startPos;
+#else
+        gtk_text_buffer_get_selection_bounds(buffer, &start_iter, &end_iter);
+        startPos = gtk_text_iter_get_offset(&end_iter);
+#endif
     }
 
     int index = find_string( searchString, startPos, searchParameter );
 
     if ( index != -1 ) {
         int indexend = index + (int)strlen( searchString );
+
+#ifdef WIN32
         SendMessage( listWin, EM_SETSEL, index, indexend );
         int line = (int)SendMessage( listWin, EM_LINEFROMCHAR, index, 0 ) - 3;
         if ( line < 0 )
             line = 0;
         line -= (int)SendMessage( listWin, EM_GETFIRSTVISIBLELINE, 0, 0 );
         SendMessage( listWin, EM_LINESCROLL, 0, line );
-
+#else
+        gtk_text_buffer_get_iter_at_offset(buffer, &start_iter, index);
+        gtk_text_buffer_get_iter_at_offset(buffer, &end_iter, indexend);
+        gtk_text_buffer_select_range(buffer, &start_iter, &end_iter);
+        gtk_text_view_scroll_to_iter(GTK_TEXT_VIEW(textview), &start_iter, 0.0, FALSE, 0.0, 0.0);
+        gtk_text_view_set_cursor_visible(GTK_TEXT_VIEW(textview), TRUE);
+#endif         
         return LISTPLUGIN_OK;
     }
 
+#ifdef WIN32
     SendMessage( listWin, EM_SETSEL, -1, -1);  // Restart search at the beginning
+#else
+    gtk_text_buffer_get_start_iter(buffer, &start_iter);
+    gtk_text_buffer_select_range(buffer, &start_iter, &start_iter);
+    gtk_text_view_scroll_to_iter(GTK_TEXT_VIEW(textview), &start_iter, 0.0, FALSE, 0.0, 0.0);
+    gtk_text_view_set_cursor_visible(GTK_TEXT_VIEW(textview), TRUE);
+#endif
 
     return LISTPLUGIN_ERROR;
 }
+
+#ifndef WIN32
+int main(int argc, char *argv[]) {
+    if (argc < 2) {
+        std::cerr << "Usage: " << argv[0] << " <elf-file>" << std::endl;
+        return 1;
+    }
+
+    std::string elf_text = elfdump(argv[1]);
+    if (elf_text.empty()) {
+        std::cerr << "Failed to parse ELF file: " << argv[1] << std::endl;
+        return 2;
+    }
+
+    gtk_init(&argc, &argv);
+
+    GtkWidget *window = gtk_window_new(GTK_WINDOW_TOPLEVEL);
+    gtk_window_set_title(GTK_WINDOW(window), "AnyELF GTK Viewer");
+    gtk_window_set_default_size(GTK_WINDOW(window), 800, 600);
+
+    GtkWidget *scrolled = gtk_scrolled_window_new(NULL, NULL);
+    gtk_container_add(GTK_CONTAINER(window), scrolled);
+
+    GtkWidget *textview = gtk_text_view_new();
+    // Use a monospaced font for better alignment (GTK2 way)
+    PangoFontDescription *font_desc = pango_font_description_from_string("Monospace");
+    gtk_widget_modify_font(textview, font_desc);
+    pango_font_description_free(font_desc);
+
+    gtk_text_view_set_editable(GTK_TEXT_VIEW(textview), FALSE);
+    gtk_text_view_set_cursor_visible(GTK_TEXT_VIEW(textview), FALSE);
+    gtk_container_add(GTK_CONTAINER(scrolled), textview);
+
+    GtkTextBuffer *buffer = gtk_text_view_get_buffer(GTK_TEXT_VIEW(textview));
+    gtk_text_buffer_set_text(buffer, elf_text.c_str(), -1);
+
+    g_signal_connect(window, "destroy", G_CALLBACK(gtk_main_quit), NULL);
+
+    gtk_widget_show_all(window);
+    gtk_main();
+
+    return 0;
+}
+#endif // WIN32

@@ -2,4 +2,4 @@
 description= AnyELF - ELF file viewer. Version 1.6
 type=wlx
 file=anyelf.wlx
-defaultdir=plugins\wlx\anyelf
+defaultdir=plugins/wlx/anyelf
